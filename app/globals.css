@@ -175,6 +175,16 @@ button, input, select, textarea { font: inherit; }
 
 .clock-colon { animation: blink 1s step-end infinite; }
 
+@media (hover: none) and (pointer: coarse) {
+  .action-button:hover:not(:disabled),
+  .icon-action:hover:not(:disabled),
+  .card-hover:hover,
+  .badge:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
 .hadirin-alert {
   width: min(92vw, 28rem) !important;
   border-radius: 1.25rem !important;
@@ -228,4 +238,27 @@ button, input, select, textarea { font: inherit; }
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@media (max-width: 639px) {
+  body { overflow-x: hidden; }
+
+  .mobile-safe-top { padding-top: env(safe-area-inset-top); }
+  .mobile-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+  .mobile-page-main {
+    padding: 1rem;
+  }
+
+  .mobile-drawer {
+    padding-bottom: env(safe-area-inset-bottom);
+    transition-duration: 240ms;
+  }
+
+  .mobile-menu-trigger,
+  .mobile-close-button {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+
 }

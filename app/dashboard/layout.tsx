@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
       <Sidebar profile={profile} />
       <div className="min-w-0 flex-1">
         <Header profile={profile} />
-        <main className="mx-auto max-w-7xl p-5 sm:p-8">{children}</main>
+        <main className="mobile-page-main mx-auto max-w-7xl p-5 sm:p-8">{children}</main>
       </div>
     </div>
   );

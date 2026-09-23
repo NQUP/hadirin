@@ -50,7 +50,7 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-2">
+    <main className="grid min-h-screen overflow-hidden bg-gradient-to-br from-blue-50 via-slate-50 to-white lg:grid-cols-2 lg:bg-transparent">
       <section className="animated-gradient-bg relative hidden overflow-hidden p-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div
           className="floating-dot left-[15%] top-[20%] size-32 opacity-40"
@@ -116,23 +116,25 @@ export default function LoginPage() {
         </p>
       </section>
 
-      <section className="flex items-center justify-center bg-gradient-to-b from-slate-50 to-white p-6">
+      <section className="flex items-start justify-center bg-transparent px-4 pb-8 pt-8 sm:p-6 lg:items-center">
         <div className="scale-in w-full max-w-md">
-          <div className="mb-9 lg:hidden">
+          <div className="mobile-safe-top mb-6 lg:hidden">
             <div className="flex items-center gap-3">
-              <div className="grid size-11 place-items-center rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 font-bold text-white shadow-lg shadow-blue-500/25">
-                H
+              <div className="size-12 shrink-0 overflow-hidden rounded-xl bg-white shadow-md shadow-blue-100">
+                <img src="/images/hadirin.png" alt="Hadirin" className="size-full object-contain" />
               </div>
               <div>
-                <span className="text-lg font-semibold text-slate-900">
-                  Hadirin
-                </span>
-                <p className="text-xs text-slate-500">Sistem Absensi</p>
+                <p className="text-lg font-semibold tracking-tight text-slate-900">Hadirin</p>
+                <p className="text-xs text-slate-400">Sistem Absensi</p>
               </div>
+            </div>
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full bg-blue-100/80 px-3 py-1.5 text-xs font-semibold text-blue-700">
+              <Sparkles className="size-3.5" />
+              Sistem Absensi Karyawan
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-200/80 bg-white p-7 shadow-xl shadow-slate-200/50">
+          <div className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-xl shadow-blue-100/70 sm:p-7">
             <div className="mb-7">
               <div className="bounce-in mb-3 grid size-12 place-items-center rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 text-blue-600 shadow-sm">
                 <ShieldCheck className="size-6" />
