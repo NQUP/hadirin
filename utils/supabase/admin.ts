@@ -5,18 +5,26 @@ export function createAdminClient() {
     const supabaseSecretKey = process.env.SUPABASE_SECRET_KEY;
 
     if (!supabaseUrl) {
-        throw new Error("NEXT_PUBLIC_SUPABASE_URL belum dikonfigurasi.");
+        throw new Error(
+            "NEXT_PUBLIC_SUPABASE_URL belum dikonfigurasi."
+        );
     }
 
     if (!supabaseSecretKey) {
-        throw new Error("SUPABASE_SECRET_KEY belum dikonfigurasi.");
+        throw new Error(
+            "SUPABASE_SECRET_KEY belum dikonfigurasi."
+        );
     }
 
-    return createClient(supabaseUrl, supabaseSecretKey, {
-        auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-            detectSessionInUrl: false,
-        },
-    });
+    return createClient(
+        supabaseUrl,
+        supabaseSecretKey,
+        {
+            auth: {
+                autoRefreshToken: false,
+                persistSession: false,
+                detectSessionInUrl: false,
+            },
+        }
+    );
 }
