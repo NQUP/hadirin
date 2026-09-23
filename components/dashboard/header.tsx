@@ -77,7 +77,7 @@ export function Header({ profile }: { profile: Profile }) {
   return (
     <>
       {/* DESKTOP HEADER */}
-      <header className="mobile-safe-top sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 backdrop-blur-xl sm:px-8">
+      <header className="mobile-safe-top sticky top-0 z-40 flex h-[72px] items-center justify-between border-b border-slate-200/60 bg-white/80 px-4 backdrop-blur-xl print:hidden sm:px-8">
         <div className="flex items-center gap-3">
           <button type="button" onClick={() => setMenuOpen(true)} className="mobile-menu-trigger grid size-9 place-items-center rounded-xl text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm lg:hidden" aria-label="Buka menu">
             <Menu className="size-5" />

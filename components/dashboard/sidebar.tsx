@@ -52,7 +52,7 @@ export function Sidebar({ profile }: { profile: SidebarProfile }) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-[260px] shrink-0 border-r border-slate-200/60 bg-white lg:block">
+    <aside className="hidden w-[260px] shrink-0 border-r border-slate-200/60 bg-white print:hidden lg:block">
       <div className="sticky top-0 flex h-screen flex-col px-4 py-5">
         {/* BRAND */}
         <div className="slide-in-left mb-8 flex items-center gap-3 px-3">

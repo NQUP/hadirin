@@ -1,27 +1,44 @@
 import { requireProfile } from "@/lib/auth";
-import { BarChart3, FileText, Download } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import { ReportView, type AttendanceReportRecord } from "./report-view";
 
 export default async function ReportsPage() {
-  await requireProfile(["manager", "admin"]);
-  return (
-    <section>
-      <div className="slide-up mb-6">
-        <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-sm font-medium text-blue-600">
-          <BarChart3 className="size-3.5" />
-          Laporan
-        </div>
-        <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">Laporan Absensi</h2>
-      </div>
+  const profile = await requireProfile(["manager", "admin"]);
+  const supabase = await createClient();
 
-      <div className="scale-in rounded-2xl border border-dashed border-slate-300 bg-white p-10 text-center">
-        <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-blue-50 text-blue-600">
-          <FileText className="size-7" />
-        </div>
-        <h3 className="mt-4 font-semibold text-slate-800">Ekspor laporan</h3>
-        <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-slate-500">
-          Data rekap harian, mingguan, dan bulanan tersedia melalui tabel absensi. Tambahkan generator CSV/PDF pada deployment berikutnya sesuai format perusahaan.
-        </p>
-      </div>
-    </section>
-  );
+  let employeeIds: string[] | null = null;
+  if (profile.role === "manager") {
+    const { data: team } = await supabase.from("profiles").select("id").eq("manager_id", profile.id);
+    employeeIds = (team ?? []).map((member) => member.id);
+  }
+
+  let attendanceQuery = supabase
+    .from("attendance")
+    .select("employee_id, attendance_date, clock_in_at, clock_out_at, status, profiles!attendance_employee_id_fkey(full_name, employee_number)")
+    .order("attendance_date", { ascending: false })
+    .limit(5000);
+
+  if (employeeIds) attendanceQuery = attendanceQuery.in("employee_id", employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"]);
+
+  const [{ data: attendance }, { count: employeeCount }] = await Promise.all([
+    attendanceQuery,
+    profile.role === "admin"
+      ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_active", true)
+      : supabase.from("profiles").select("id", { count: "exact", head: true }).eq("manager_id", profile.id).eq("is_active", true),
+  ]);
+
+  const records: AttendanceReportRecord[] = (attendance ?? []).map((record) => {
+    const person = record.profiles as unknown as { full_name: string; employee_number: string } | null;
+    return {
+      employeeId: record.employee_id,
+      date: record.attendance_date,
+      clockIn: record.clock_in_at,
+      clockOut: record.clock_out_at,
+      status: record.status,
+      name: person?.full_name ?? "Karyawan",
+      number: person?.employee_number ?? "-",
+    };
+  });
+
+  return <ReportView records={records} employeeCount={employeeCount ?? 0} />;
 }
