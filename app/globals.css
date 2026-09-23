@@ -1,26 +1,181 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+}
+* {
+  box-sizing: border-box;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.leaflet-container {
+  z-index: 0 !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.leaflet-pane {
+  z-index: 1 !important;
 }
 
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 2 !important;
+}
+
+html,
 body {
+  min-height: 100%;
+}
+body {
+  margin: 0;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+.field {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+  background: white;
+  padding: 0.65rem 0.75rem;
+  color: #0f172a;
+  outline: none;
+  transition:
+    border-color 150ms,
+    box-shadow 150ms;
+}
+.field:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 0.12);
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 9999px;
+  background: #eff6ff;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1d4ed8;
+}
+.badge-success {
+  background: #ecfdf5;
+  color: #047857;
+}
+.badge-danger {
+  background: #fff1f2;
+  color: #be123c;
+}
+.action-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.75rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition:
+    transform 180ms ease-out,
+    background-color 180ms ease-out,
+    opacity 180ms ease-out;
+}
+.action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+.action-button:focus-visible,
+.icon-action:focus-visible {
+  outline: 3px solid rgb(37 99 235 / 0.3);
+  outline-offset: 2px;
+}
+.action-button:disabled,
+.icon-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+.icon-action {
+  display: grid;
+  size: 2rem;
+  place-items: center;
+  border-radius: 0.625rem;
+  transition:
+    background-color 180ms ease-out,
+    transform 180ms ease-out;
+}
+.icon-action:hover:not(:disabled) {
+  transform: scale(1.04);
+}
+.skeleton {
+  display: block;
+  border-radius: 0.5rem;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f8fafc 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+.fade-in {
+  animation: fade-in 220ms ease-out both;
+}
+.slide-up {
+  animation: slide-up 280ms ease-out both;
+}
+.hadirin-alert {
+  width: min(92vw, 28rem) !important;
+  border-radius: 1rem !important;
+  padding: 1.75rem !important;
+}
+.hadirin-alert-confirm,
+.hadirin-alert-cancel {
+  border-radius: 0.65rem !important;
+  padding: 0.65rem 1rem !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+.hadirin-alert-confirm {
+  margin-left: 0.5rem !important;
+  background: #2563eb !important;
+  color: white !important;
+}
+.hadirin-alert-cancel {
+  background: #e2e8f0 !important;
+  color: #334155 !important;
+}
+@keyframes shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

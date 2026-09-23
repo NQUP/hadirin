@@ -1,36 +1,48 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Hadirin — Sistem Absensi Karyawan
 
-## Getting Started
+Aplikasi full-stack Next.js untuk absensi karyawan dengan Supabase Auth, PostgreSQL, role-based access control, dan Row Level Security.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+1. Salin `.env.example` menjadi `.env.local`, lalu isi URL dan publishable key dari proyek Supabase Anda.
+2. Jalankan migration `supabase/migrations/202609220001_initial_schema.sql` di SQL Editor Supabase. Jika schema awal sudah dibuat, jalankan juga migration tambahan `supabase/migrations/202609220002_add_employee_work_regions.sql` dan `supabase/migrations/202609220003_add_attendance_selfie_storage.sql`.
+3. Buat akun Admin, Manager, dan Karyawan melalui **Supabase Auth > Users**. Jangan menyimpan password di tabel aplikasi.
+4. Tambahkan baris `profiles` dengan UUID yang sama dengan `auth.users.id`; tetapkan role dan relasi `manager_id` untuk setiap karyawan.
+5. Sesuaikan `office_locations` dan `shifts` dengan kantor serta jam kerja perusahaan.
+6. Jalankan `npm run dev`.
+
+## Wilayah kerja absensi
+
+Setiap karyawan sekarang harus memiliki `office_location_id` pada tabel `profiles`. Clock in dan clock out hanya diterima apabila GPS berada di dalam radius lokasi tersebut; aplikasi tidak lagi memilih satu lokasi kantor aktif secara global.
+
+```sql
+update public.profiles
+set office_location_id = 'UUID_OFFICE_LOCATION'
+where id = 'UUID_USER_AUTH';
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Gunakan `name` dan `address` pada `office_locations` sebagai nama serta alamat wilayah kerja, misalnya `Jakarta Selatan`, `Kantor Pusat`, atau `Site Cikarang`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Selfie absensi
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Clock in dan clock out mewajibkan foto dari kamera depan. Aplikasi menambahkan watermark waktu WIB dan wilayah kerja pada foto, lalu mengunggahnya ke bucket privat `attendance-selfies` di Supabase Storage. Jalankan migration `202609220003_add_attendance_selfie_storage.sql` agar bucket serta policy upload milik user tersedia.
 
-## Learn More
+## Fitur
 
-To learn more about Next.js, take a look at the following resources:
+- Satu halaman login serta satu layout dashboard yang menyesuaikan role `employee`, `manager`, atau `admin`.
+- Cookie-based Supabase SSR session dan `proxy.ts` untuk refresh sesi / perlindungan rute.
+- Clock in / clock out memakai waktu server, geolocation browser, dan validasi radius kantor Haversine di Route Handler.
+- Riwayat absensi, pengajuan izin/sakit/cuti, visibilitas tim manager, dan data karyawan admin.
+- Validasi server dengan Zod dan policy RLS untuk data pribadi, bawahan, serta admin.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Catatan keamanan
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` boleh dipakai di browser. Jangan pernah menambahkan `service_role` key ke `.env` yang terekspos atau ke kode klien. Pembuatan user dilakukan lewat Supabase Dashboard atau proses admin server terpisah yang menyimpan service key secara aman.
 
-## Deploy on Vercel
+## Validasi
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
