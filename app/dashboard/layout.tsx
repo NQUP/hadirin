@@ -3,15 +3,21 @@ import { Sidebar } from "@/components/dashboard/sidebar";
 import { requireProfile } from "@/lib/auth";
 import type { ReactNode } from "react";
 
-export default async function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const profile = await requireProfile();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 lg:flex">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <Sidebar profile={profile} />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 lg:ml-[260px]">
         <Header profile={profile} />
-        <main className="mobile-page-main mx-auto max-w-7xl p-5 sm:p-8">{children}</main>
+        <main className="mobile-page-main mx-auto max-w-7xl p-5 sm:p-8">
+          {children}
+        </main>
       </div>
     </div>
   );
