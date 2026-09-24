@@ -6,6 +6,7 @@ import {
   BarChart3,
   Building2,
   CalendarClock,
+  CalendarDays,
   ClipboardList,
   FileText,
   LayoutDashboard,
@@ -19,6 +20,9 @@ const entries = {
     ["Dashboard", "/dashboard", LayoutDashboard],
     ["Absensi Saya", "/dashboard/attendance", CalendarClock],
     ["Pengajuan", "/dashboard/requests", ClipboardList],
+    ["Rekap Kehadiran", "/dashboard/reports", BarChart3],
+    ["Kalender Kehadiran", "/dashboard/attendance-calendar", CalendarDays],
+    ["Jadwal Kerja", "/dashboard/schedules", CalendarDays],
     ["Profil", "/dashboard/profile", Users],
   ],
   manager: [
@@ -27,6 +31,8 @@ const entries = {
     ["Absensi Tim", "/dashboard/attendance", CalendarClock],
     ["Pengajuan", "/dashboard/requests", ClipboardList],
     ["Laporan", "/dashboard/reports", FileText],
+    ["Kalender Kehadiran", "/dashboard/attendance-calendar", CalendarDays],
+    ["Jadwal Kerja", "/dashboard/schedules", CalendarDays],
     ["Profil", "/dashboard/profile", Users],
   ],
   admin: [
@@ -36,6 +42,8 @@ const entries = {
     ["Absensi", "/dashboard/attendance", CalendarClock],
     ["Pengajuan", "/dashboard/requests", ClipboardList],
     ["Laporan", "/dashboard/reports", BarChart3],
+    ["Kalender Kehadiran", "/dashboard/attendance-calendar", CalendarDays],
+    ["Jadwal Kerja", "/dashboard/schedules", CalendarDays],
     ["Profil", "/dashboard/profile", Users],
   ],
 } as const;

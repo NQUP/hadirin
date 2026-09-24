@@ -1,44 +1,50 @@
 import { requireProfile } from "@/lib/auth";
-import { createClient } from "@/utils/supabase/server";
-import { ReportView, type AttendanceReportRecord } from "./report-view";
+import { getAttendanceSummary } from "@/lib/attendance-summary";
+import { AttendanceSummaryView } from "./attendance-summary-view";
 
-export default async function ReportsPage() {
-  const profile = await requireProfile(["manager", "admin"]);
-  const supabase = await createClient();
+type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
-  let employeeIds: string[] | null = null;
-  if (profile.role === "manager") {
-    const { data: team } = await supabase.from("profiles").select("id").eq("manager_id", profile.id);
-    employeeIds = (team ?? []).map((member) => member.id);
+export default async function ReportsPage({ searchParams }: { searchParams: SearchParams }) {
+  const profile = await requireProfile();
+  const params = await searchParams;
+  const period = valueOf(params.period) || "monthly";
+  const selectedDate = valueOf(params.date) || (period === "monthly" ? todayInJakarta().slice(0, 7) : todayInJakarta());
+  const requestedEmployeeId = valueOf(params.employeeId) || undefined;
+  const employeeId = profile.role === "employee" ? undefined : requestedEmployeeId;
+  const range = getPeriodRange(period, selectedDate, valueOf(params.from), valueOf(params.to));
+
+  const result = await getAttendanceSummary(profile, { ...range, employeeId });
+  return <AttendanceSummaryView result={result} role={profile.role} period={period} selectedDate={selectedDate} employeeId={employeeId ?? ""} />;
+}
+
+function valueOf(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function todayInJakarta() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
+}
+
+function getPeriodRange(period: string, selectedDate: string, from?: string, to?: string) {
+  if (period === "custom") {
+    return { from: from || selectedDate, to: to || selectedDate };
   }
 
-  let attendanceQuery = supabase
-    .from("attendance")
-    .select("employee_id, attendance_date, clock_in_at, clock_out_at, status, profiles!attendance_employee_id_fkey(full_name, employee_number)")
-    .order("attendance_date", { ascending: false })
-    .limit(5000);
+  if (period === "daily") {
+    return { from: selectedDate, to: selectedDate };
+  }
 
-  if (employeeIds) attendanceQuery = attendanceQuery.in("employee_id", employeeIds.length ? employeeIds : ["00000000-0000-0000-0000-000000000000"]);
+  if (period === "weekly") {
+    const date = new Date(`${selectedDate}T00:00:00Z`);
+    const mondayOffset = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - mondayOffset);
+    const start = date.toISOString().slice(0, 10);
+    date.setUTCDate(date.getUTCDate() + 6);
+    return { from: start, to: date.toISOString().slice(0, 10) };
+  }
 
-  const [{ data: attendance }, { count: employeeCount }] = await Promise.all([
-    attendanceQuery,
-    profile.role === "admin"
-      ? supabase.from("profiles").select("id", { count: "exact", head: true }).eq("is_active", true)
-      : supabase.from("profiles").select("id", { count: "exact", head: true }).eq("manager_id", profile.id).eq("is_active", true),
-  ]);
-
-  const records: AttendanceReportRecord[] = (attendance ?? []).map((record) => {
-    const person = record.profiles as unknown as { full_name: string; employee_number: string } | null;
-    return {
-      employeeId: record.employee_id,
-      date: record.attendance_date,
-      clockIn: record.clock_in_at,
-      clockOut: record.clock_out_at,
-      status: record.status,
-      name: person?.full_name ?? "Karyawan",
-      number: person?.employee_number ?? "-",
-    };
-  });
-
-  return <ReportView records={records} employeeCount={employeeCount ?? 0} />;
+  const month = /^\d{4}-\d{2}$/.test(selectedDate) ? selectedDate : selectedDate.slice(0, 7);
+  const [year, monthNumber] = month.split("-").map(Number);
+  const lastDay = new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
+  return { from: `${month}-01`, to: `${month}-${String(lastDay).padStart(2, "0")}` };
 }

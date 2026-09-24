@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Camera, Lock, Mail, Pencil, Save, User, X, Shield } from "lucide-react";
 import { showError, showSuccess } from "@/components/ui/sweet-alert";
 import { createClient } from "@/utils/supabase/client";
@@ -8,6 +9,7 @@ import { createClient } from "@/utils/supabase/client";
 type Profile = { id: string; full_name: string; email: string; role: string; is_active: boolean; avatar_url?: string | null };
 
 export default function ProfilePage() {
+  const router = useRouter();
   const supabase = createClient();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [fullName, setFullName] = useState("");
@@ -20,12 +22,13 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
 
-  useEffect(() => { loadProfile(); }, []);
-
-  async function loadProfile() {
+  const loadProfile = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { window.location.href = "/login"; return; }
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
       const { data, error } = await supabase.from("profiles").select("id, full_name, email, role, is_active, avatar_url").eq("id", user.id).single();
       if (error) throw error;
       setProfile(data); setFullName(data.full_name ?? ""); setEmail(data.email ?? ""); setAvatarPreview(data.avatar_url ?? "");
@@ -33,7 +36,12 @@ export default function ProfilePage() {
       console.error("LOAD PROFILE ERROR:", error);
       await showError("Gagal memuat profil", "Data profil tidak dapat dimuat.");
     } finally { setLoading(false); }
-  }
+  }, [supabase]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadProfile();
+  }, [loadProfile]);
 
   function handleAvatarChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; if (!file) return;

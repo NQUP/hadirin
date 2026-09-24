@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { notifyRequestSubmitted } from "@/lib/notifications";
 import { requireApiProfile } from "@/lib/auth";
 import { leaveRequestSchema } from "@/lib/validations/leave-request";
 import { createClient } from "@/utils/supabase/server";
@@ -193,6 +194,8 @@ export async function POST(request: Request) {
         );
       }
 
+      await notifyRequestSubmitted({ kind: "leave", requestId: data.id, employeeId: access.profile.id, date: startDate, leaveType: leaveType as "permission" | "sick" | "leave" });
+
       return NextResponse.json(
         {
           request: data,
@@ -229,6 +232,8 @@ export async function POST(request: Request) {
         { status: 500 },
       );
     }
+
+    await notifyRequestSubmitted({ kind: "leave", requestId: data.id, employeeId: access.profile.id, date: startDate, leaveType: leaveType as "permission" | "sick" | "leave" });
 
     return NextResponse.json(
       {

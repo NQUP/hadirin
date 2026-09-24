@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import {
-  Bell,
   LogOut,
   Menu,
   X,
@@ -19,6 +18,7 @@ import {
 
 import { createClient } from "@/utils/supabase/client";
 import type { AppRole, Profile } from "@/types/database";
+import { NotificationBell } from "@/components/dashboard/notification-bell";
 
 const entries = {
   employee: [
@@ -89,10 +89,7 @@ export function Header({ profile }: { profile: Profile }) {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <button type="button" className="relative grid size-9 place-items-center rounded-xl text-slate-500 transition-all duration-200 hover:bg-slate-100 hover:text-slate-900 hover:shadow-sm" aria-label="Notifikasi">
-            <Bell className="size-[18px]" />
-            <span className="absolute right-2 top-2 size-2 rounded-full bg-blue-600 shadow-sm shadow-blue-400 pulse-soft" />
-          </button>
+          <NotificationBell />
           <div className="mx-1 hidden h-7 w-px bg-slate-200 sm:block" />
           <Link href="/dashboard/profile" className="group flex items-center gap-2.5 rounded-xl px-2 py-1.5 transition-all duration-200 hover:bg-slate-50 hover:shadow-sm">
             <div className="hidden text-right sm:block">
