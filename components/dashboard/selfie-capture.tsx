@@ -66,8 +66,9 @@ export function SelfieCapture({
   }, [cameraOpen]);
 
   useEffect(() => {
+    const video = videoRef.current;
+
     return () => {
-      const video = videoRef.current;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
 
