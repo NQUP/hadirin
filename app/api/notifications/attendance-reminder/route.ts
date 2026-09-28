@@ -16,14 +16,19 @@ export async function POST() {
 
   const { data: schedules, error: schedulesError } = await admin
     .from("work_schedules")
-    .select("employee_id, shift_id, profiles!inner(id, full_name, is_active), shifts!inner(start_time, late_tolerance_minutes, is_active)")
+    .select(
+      "employee_id, shift_id, profiles!inner(id, full_name, is_active), shifts!inner(start_time, late_tolerance_minutes, is_active)",
+    )
     .eq("weekday", weekday)
     .eq("profiles.is_active", true)
     .eq("shifts.is_active", true);
 
   if (schedulesError) {
     console.error("Attendance reminder schedules error:", schedulesError);
-    return NextResponse.json({ error: "Gagal mengambil jadwal kerja." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Gagal mengambil jadwal kerja." },
+      { status: 500 },
+    );
   }
 
   if (!schedules?.length) {
@@ -45,7 +50,10 @@ export async function POST() {
 
   if (attendanceError) {
     console.error("Attendance reminder attendance error:", attendanceError);
-    return NextResponse.json({ error: "Gagal memeriksa absensi hari ini." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Gagal memeriksa absensi hari ini." },
+      { status: 500 },
+    );
   }
 
   const clockedIn = new Set(
@@ -56,8 +64,17 @@ export async function POST() {
 
   const dueSchedules = schedules.filter((schedule) => {
     if (clockedIn.has(schedule.employee_id)) return false;
-    const startTime = String(schedule.shifts.start_time).slice(0, 5);
-    const tolerance = Number(schedule.shifts.late_tolerance_minutes ?? 0);
+
+    // Supabase represents joined relations as arrays in the generated type.
+    // A work schedule has one shift, so use the first joined row.
+    const shift = Array.isArray(schedule.shifts)
+      ? schedule.shifts[0]
+      : schedule.shifts;
+
+    if (!shift) return false;
+
+    const startTime = String(shift.start_time).slice(0, 5);
+    const tolerance = Number(shift.late_tolerance_minutes ?? 0);
     return timeToMinutes(time) >= timeToMinutes(startTime) + tolerance;
   });
 
@@ -72,7 +89,8 @@ export async function POST() {
   }
 
   const eventKeys = dueSchedules.map(
-    (schedule) => `attendance-reminder:${schedule.employee_id}:${attendanceDate}`,
+    (schedule) =>
+      `attendance-reminder:${schedule.employee_id}:${attendanceDate}`,
   );
 
   const { data: existing, error: existingError } = await admin
@@ -81,18 +99,31 @@ export async function POST() {
     .in("event_key", eventKeys);
 
   if (existingError) {
-    console.error("Attendance reminder existing notification error:", existingError);
-    return NextResponse.json({ error: "Gagal memeriksa notifikasi yang sudah ada." }, { status: 500 });
+    console.error(
+      "Attendance reminder existing notification error:",
+      existingError,
+    );
+    return NextResponse.json(
+      { error: "Gagal memeriksa notifikasi yang sudah ada." },
+      { status: 500 },
+    );
   }
 
   const existingKeys = new Set(
-    (existing ?? []).map((notification) => `${notification.recipient_id}:${notification.event_key}`),
+    (existing ?? []).map(
+      (notification) =>
+        `${notification.recipient_id}:${notification.event_key}`,
+    ),
   );
 
   const rows = dueSchedules
     .map((schedule) => {
-      const eventKey = `attendance-reminder:${schedule.employee_id}:${attendanceDate}`;
-      if (existingKeys.has(`${schedule.employee_id}:${eventKey}`)) return null;
+      const eventKey =
+        `attendance-reminder:${schedule.employee_id}:${attendanceDate}`;
+
+      if (existingKeys.has(`${schedule.employee_id}:${eventKey}`)) {
+        return null;
+      }
 
       return {
         recipient_id: schedule.employee_id,
@@ -117,11 +148,16 @@ export async function POST() {
     });
   }
 
-  const { error: insertError } = await admin.from("notifications").insert(rows);
+  const { error: insertError } = await admin
+    .from("notifications")
+    .insert(rows);
 
   if (insertError) {
     console.error("Attendance reminder insert error:", insertError);
-    return NextResponse.json({ error: "Gagal membuat notifikasi pengingat." }, { status: 500 });
+    return NextResponse.json(
+      { error: "Gagal membuat notifikasi pengingat." },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({
