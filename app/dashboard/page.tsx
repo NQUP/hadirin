@@ -1,3 +1,4 @@
+import { AttendanceChart } from "@/components/dashboard/attendance-chart";
 import { ClockCard } from "@/components/dashboard/clock-card";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
@@ -19,12 +20,19 @@ function startOfSevenDays(date: string) {
   return value.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
 }
 
+function startOfThirtyDays(date: string) {
+  const value = new Date(`${date}T00:00:00+07:00`);
+  value.setDate(value.getDate() - 29);
+  return value.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
+}
+
 export default async function DashboardPage() {
   const profile = await requireProfile();
   const supabase = await createClient();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const monthStart = startOfMonth(today);
   const sevenDaysStart = startOfSevenDays(today);
+  const thirtyDaysStart = startOfThirtyDays(today);
 
   const { data: todayAttendance } = await supabase
     .from("attendance")
@@ -102,24 +110,6 @@ export default async function DashboardPage() {
     .select("id", { count: "exact", head: true })
     .eq("status", "pending");
 
-  const daily = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(`${sevenDaysStart}T00:00:00+07:00`);
-    date.setDate(date.getDate() + index);
-    const key = date.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
-    const dayRows = rows.filter((row) => row.attendance_date === key);
-    const present = dayRows.filter((row) => row.status !== "absent").length;
-    const late = dayRows.filter((row) => row.status === "late").length;
-    return {
-      date: key,
-      label: new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(date),
-      total: dayRows.length,
-      present,
-      late,
-    };
-  });
-
-  const maxPresent = Math.max(...daily.map((day) => day.present), 1);
-
   const cards = [
     [profile.role === "manager" ? "Anggota tim" : "Total karyawan", employeeCount ?? 0, "Karyawan aktif", Users],
     ["Hadir hari ini", presentToday, "Data absensi hari ini", CheckCircle2],
@@ -137,34 +127,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <section className="slide-up stagger-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h3 className="font-semibold text-slate-900">Kehadiran 7 hari terakhir</h3>
-            <p className="mt-1 text-sm text-slate-500">Jumlah karyawan yang tercatat hadir setiap hari.</p>
-          </div>
-          <CalendarDays className="size-5 text-slate-400" />
-        </div>
-
-        <div className="mt-6 grid grid-cols-7 gap-2 sm:gap-4">
-          {daily.map((day) => (
-            <div key={day.date} className="flex min-w-0 flex-col items-center gap-2">
-              <div className="flex h-40 w-full max-w-12 items-end justify-center rounded-xl bg-slate-50 p-1.5">
-                <div
-                  className="w-full rounded-lg bg-blue-500 transition-all"
-                  style={{ height: `${Math.max((day.present / maxPresent) * 100, day.present ? 8 : 2)}%` }}
-                  title={`${day.present} hadir, ${day.late} terlambat`}
-                />
-              </div>
-              <div className="text-center">
-                <p className="text-xs font-medium text-slate-600">{day.label}</p>
-                <p className="text-sm font-bold text-slate-900">{day.present}</p>
-                <p className="text-[10px] text-amber-600">{day.late} terlambat</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
+      <AttendanceChart rows={rows} today={today} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="slide-up rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
@@ -182,6 +145,7 @@ export default async function DashboardPage() {
           <div className="mt-5 space-y-3">
             <SummaryRow label="Catatan absensi 7 hari" value={rows.length} icon={CalendarDays} />
             <SummaryRow label="Catatan bulan berjalan" value={monthRows.length} icon={CheckCircle2} />
+            <SummaryRow label="Rentang grafik" value={30} icon={CalendarDays} />
             <SummaryRow label="Pengajuan pending" value={pendingRequests ?? 0} icon={FileCheck2} />
           </div>
         </section>
