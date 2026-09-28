@@ -7,9 +7,8 @@ import { Building2 } from "lucide-react";
 export default async function SettingsPage() {
   await requireProfile(["admin"]);
   const supabase = await createClient();
-  const [{ data: regions }, { data: employees }, { data: shift }] = await Promise.all([
+  const [{ data: regions }, { data: shift }] = await Promise.all([
     supabase.from("office_locations").select("id, name, address, latitude, longitude, radius_meters, is_active").order("name"),
-    supabase.from("profiles").select("id, full_name, employee_number, email, office_location_id, is_active").order("full_name"),
     supabase.from("shifts").select("id, start_time, end_time, late_tolerance_minutes, is_active").eq("is_active", true).limit(1).maybeSingle(),
   ]);
 
