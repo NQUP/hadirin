@@ -14,12 +14,6 @@ function startOfMonth(date: string) {
   return `${date.slice(0, 7)}-01`;
 }
 
-function startOfSevenDays(date: string) {
-  const value = new Date(`${date}T00:00:00+07:00`);
-  value.setDate(value.getDate() - 6);
-  return value.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
-}
-
 function startOfThirtyDays(date: string) {
   const value = new Date(`${date}T00:00:00+07:00`);
   value.setDate(value.getDate() - 29);
@@ -31,7 +25,6 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
   const monthStart = startOfMonth(today);
-  const sevenDaysStart = startOfSevenDays(today);
   const thirtyDaysStart = startOfThirtyDays(today);
 
   const { data: todayAttendance } = await supabase
@@ -80,11 +73,13 @@ export default async function DashboardPage() {
     );
   }
 
-  const [{ data: recentAttendance }, { data: monthlyAttendance }] = await Promise.all([
+  // Load the full 30-day range once so the client-side chart can switch between
+  // 7 days, 30 days, and the current month without another request.
+  const [{ data: attendanceRows }, { data: monthlyAttendance }] = await Promise.all([
     supabase
       .from("attendance")
       .select("id, attendance_date, status, employee_id")
-      .gte("attendance_date", sevenDaysStart)
+      .gte("attendance_date", thirtyDaysStart)
       .lte("attendance_date", today),
     supabase
       .from("attendance")
@@ -93,7 +88,7 @@ export default async function DashboardPage() {
       .lte("attendance_date", today),
   ]);
 
-  const rows = recentAttendance ?? [];
+  const rows = attendanceRows ?? [];
   const monthRows = monthlyAttendance ?? [];
   const todayRows = rows.filter((row) => row.attendance_date === today);
   const presentToday = todayRows.filter((row) => row.status !== "absent").length;
@@ -143,9 +138,8 @@ export default async function DashboardPage() {
         <section className="slide-up rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
           <h3 className="font-semibold text-slate-900">Periode berjalan</h3>
           <div className="mt-5 space-y-3">
-            <SummaryRow label="Catatan absensi 7 hari" value={rows.length} icon={CalendarDays} />
+            <SummaryRow label="Catatan absensi 30 hari" value={rows.length} icon={CalendarDays} />
             <SummaryRow label="Catatan bulan berjalan" value={monthRows.length} icon={CheckCircle2} />
-            <SummaryRow label="Rentang grafik" value={30} icon={CalendarDays} />
             <SummaryRow label="Pengajuan pending" value={pendingRequests ?? 0} icon={FileCheck2} />
           </div>
         </section>
