@@ -1,3 +1,4 @@
+import { ClockCard } from "@/components/dashboard/clock-card";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import { CalendarDays, CheckCircle2, Clock3, FileCheck2, Users, XCircle } from "lucide-react";
@@ -64,16 +65,19 @@ export default async function DashboardPage() {
           ))}
         </div>
         <div className="slide-up stagger-4">
-          {/* ClockCard is intentionally kept in the employee dashboard. */}
+          <ClockCard initialAttendance={todayAttendance} workRegion={workRegion} />
         </div>
       </div>
     );
   }
 
-  // Manager/Admin analytics use the same attendance table and remain protected by
-  // Supabase RLS. This keeps the dashboard consistent with the existing access model.
-  const attendanceBase = supabase.from("attendance").select("id, attendance_date, status, employee_id").gte("attendance_date", sevenDaysStart).lte("attendance_date", today);
-  const { data: recentAttendance } = await attendanceBase;
+  // Manager/Admin analytics use the same attendance table and rely on Supabase RLS
+  // for the rows available to the current role.
+  const { data: recentAttendance } = await supabase
+    .from("attendance")
+    .select("id, attendance_date, status, employee_id")
+    .gte("attendance_date", sevenDaysStart)
+    .lte("attendance_date", today);
 
   const rows = recentAttendance ?? [];
   const todayRows = rows.filter((row) => row.attendance_date === today);
