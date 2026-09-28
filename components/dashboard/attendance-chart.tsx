@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CalendarDays } from "lucide-react";
+import { CalendarDays, CheckCircle2, Clock3, Users, X } from "lucide-react";
 
 type AttendanceRow = {
   id: string;
@@ -10,10 +10,25 @@ type AttendanceRow = {
   employee_id: string;
 };
 
+type Employee = {
+  id: string;
+  full_name: string;
+  employee_number: string;
+};
+
 type Period = "7d" | "30d" | "month";
 
-export function AttendanceChart({ rows, today }: { rows: AttendanceRow[]; today: string }) {
+const statusLabel: Record<string, string> = {
+  present: "Hadir",
+  late: "Terlambat",
+  early_leave: "Pulang cepat",
+  absent: "Tidak hadir",
+};
+
+export function AttendanceChart({ rows, employees, today }: { rows: AttendanceRow[]; employees: Employee[]; today: string }) {
   const [period, setPeriod] = useState<Period>("7d");
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const employeeMap = useMemo(() => new Map(employees.map((employee) => [employee.id, employee])), [employees]);
 
   const days = useMemo(() => {
     const end = new Date(`${today}T00:00:00+07:00`);
@@ -45,13 +60,17 @@ export function AttendanceChart({ rows, today }: { rows: AttendanceRow[]; today:
 
   const maxPresent = Math.max(...days.map((day) => day.present), 1);
   const visibleDays = period === "month" ? days.slice(-14) : days;
+  const selectedRows = selectedDate ? rows.filter((row) => row.attendance_date === selectedDate) : [];
+  const selectedLabel = selectedDate
+    ? new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeZone: "Asia/Jakarta" }).format(new Date(`${selectedDate}T00:00:00+07:00`))
+    : "";
 
   return (
     <section className="slide-up stagger-4 rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h3 className="font-semibold text-slate-900">Kehadiran</h3>
-          <p className="mt-1 text-sm text-slate-500">Jumlah karyawan yang tercatat hadir setiap hari.</p>
+          <p className="mt-1 text-sm text-slate-500">Klik batang untuk melihat detail absensi hari tersebut.</p>
         </div>
         <div className="flex items-center gap-2">
           <CalendarDays className="hidden size-5 text-slate-400 sm:block" />
@@ -60,7 +79,7 @@ export function AttendanceChart({ rows, today }: { rows: AttendanceRow[]; today:
               <button
                 key={value}
                 type="button"
-                onClick={() => setPeriod(value)}
+                onClick={() => { setPeriod(value); setSelectedDate(null); }}
                 className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${period === value ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
               >
                 {value === "7d" ? "7 Hari" : value === "30d" ? "30 Hari" : "Bulan Ini"}
@@ -73,12 +92,11 @@ export function AttendanceChart({ rows, today }: { rows: AttendanceRow[]; today:
       <div className="mt-6 overflow-x-auto pb-2">
         <div className={`flex min-w-full items-end gap-2 ${period === "month" ? "min-w-[620px]" : "min-w-[420px]"}`}>
           {visibleDays.map((day) => (
-            <div key={day.date} className="flex min-w-10 flex-1 flex-col items-center gap-2">
-              <div className="flex h-40 w-full max-w-12 items-end justify-center rounded-xl bg-slate-50 p-1.5">
+            <button key={day.date} type="button" onClick={() => setSelectedDate(day.date)} className="group flex min-w-10 flex-1 flex-col items-center gap-2 rounded-xl p-1 hover:bg-slate-50">
+              <div className="flex h-40 w-full max-w-12 items-end justify-center rounded-xl bg-slate-50 p-1.5 group-hover:bg-blue-50">
                 <div
-                  className="w-full rounded-lg bg-blue-500 transition-all"
+                  className="w-full rounded-lg bg-blue-500 transition-all group-hover:bg-blue-600"
                   style={{ height: `${Math.max((day.present / maxPresent) * 100, day.present ? 8 : 2)}%` }}
-                  title={`${day.present} hadir, ${day.late} terlambat`}
                 />
               </div>
               <div className="text-center">
@@ -86,10 +104,51 @@ export function AttendanceChart({ rows, today }: { rows: AttendanceRow[]; today:
                 <p className="text-sm font-bold text-slate-900">{day.present}</p>
                 {day.late > 0 && <p className="text-[10px] text-amber-600">{day.late} terlambat</p>}
               </div>
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {selectedDate && (
+        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <Users className="size-4 text-blue-600" />
+                <h4 className="font-semibold text-slate-900">Detail Absensi</h4>
+              </div>
+              <p className="mt-1 text-sm text-slate-500">{selectedLabel} · {selectedRows.length} catatan</p>
+            </div>
+            <button type="button" onClick={() => setSelectedDate(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-700" aria-label="Tutup detail">
+              <X className="size-4" />
+            </button>
+          </div>
+
+          {selectedRows.length === 0 ? (
+            <div className="mt-4 rounded-xl bg-white px-4 py-6 text-center text-sm text-slate-500">Belum ada data absensi pada tanggal ini.</div>
+          ) : (
+            <div className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-xl bg-white">
+              {selectedRows.map((row) => {
+                const employee = employeeMap.get(row.employee_id);
+                const status = row.status ?? "present";
+                const late = status === "late";
+                return (
+                  <div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-slate-900">{employee?.full_name ?? "Karyawan"}</p>
+                      <p className="text-xs text-slate-400">{employee?.employee_number ?? row.employee_id.slice(0, 8)}</p>
+                    </div>
+                    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${late ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                      {late ? <Clock3 className="size-3" /> : <CheckCircle2 className="size-3" />}
+                      {statusLabel[status] ?? status}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
