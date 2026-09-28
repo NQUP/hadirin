@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 
 export default function Loading() {
@@ -5,9 +6,11 @@ export default function Loading() {
     <main className="grid min-h-screen place-items-center bg-gradient-to-b from-slate-50 to-white">
       <div className="bounce-in flex flex-col items-center gap-4">
         <div className="size-10 shrink-0 overflow-hidden rounded-xl shadow-sm">
-          <img
+          <Image
             src="/images/hadirin.png"
             alt="Hadirin"
+            width={40}
+            height={40}
             className="size-full object-contain"
           />
         </div>
