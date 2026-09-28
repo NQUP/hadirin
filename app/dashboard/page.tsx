@@ -37,7 +37,8 @@ export default async function DashboardPage() {
     .from("attendance")
     .select("id", { count: "exact", head: true })
     .eq("employee_id", profile.id)
-    .gte("attendance_date", monthStart);
+    .gte("attendance_date", monthStart)
+    .lte("attendance_date", today);
 
   const { count: pendingCount } = await supabase
     .from("leave_requests")
@@ -71,17 +72,22 @@ export default async function DashboardPage() {
     );
   }
 
-  // Manager/Admin analytics use the same attendance table and rely on Supabase RLS
-  // for the rows available to the current role.
-  const { data: recentAttendance } = await supabase
-    .from("attendance")
-    .select("id, attendance_date, status, employee_id")
-    .gte("attendance_date", sevenDaysStart)
-    .lte("attendance_date", today);
+  const [{ data: recentAttendance }, { data: monthlyAttendance }] = await Promise.all([
+    supabase
+      .from("attendance")
+      .select("id, attendance_date, status, employee_id")
+      .gte("attendance_date", sevenDaysStart)
+      .lte("attendance_date", today),
+    supabase
+      .from("attendance")
+      .select("id, attendance_date, status, employee_id")
+      .gte("attendance_date", monthStart)
+      .lte("attendance_date", today),
+  ]);
 
   const rows = recentAttendance ?? [];
+  const monthRows = monthlyAttendance ?? [];
   const todayRows = rows.filter((row) => row.attendance_date === today);
-  const monthRows = rows.filter((row) => row.attendance_date >= monthStart);
   const presentToday = todayRows.filter((row) => row.status !== "absent").length;
   const lateToday = todayRows.filter((row) => row.status === "late").length;
   const uniqueEmployeesToday = new Set(todayRows.map((row) => row.employee_id)).size;
@@ -101,13 +107,18 @@ export default async function DashboardPage() {
     date.setDate(date.getDate() + index);
     const key = date.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
     const dayRows = rows.filter((row) => row.attendance_date === key);
+    const present = dayRows.filter((row) => row.status !== "absent").length;
+    const late = dayRows.filter((row) => row.status === "late").length;
     return {
       date: key,
-      label: new Intl.DateTimeFormat("id-ID", { weekday: "short", timeZone: "Asia/Jakarta" }).format(date),
+      label: new Intl.DateTimeFormat("id-ID", { weekday: "short" }).format(date),
       total: dayRows.length,
-      late: dayRows.filter((row) => row.status === "late").length,
+      present,
+      late,
     };
   });
+
+  const maxPresent = Math.max(...daily.map((day) => day.present), 1);
 
   const cards = [
     [profile.role === "manager" ? "Anggota tim" : "Total karyawan", employeeCount ?? 0, "Karyawan aktif", Users],
@@ -130,16 +141,26 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between gap-4">
           <div>
             <h3 className="font-semibold text-slate-900">Kehadiran 7 hari terakhir</h3>
-            <p className="mt-1 text-sm text-slate-500">Ringkasan absensi berdasarkan data yang dapat diakses role Anda.</p>
+            <p className="mt-1 text-sm text-slate-500">Jumlah karyawan yang tercatat hadir setiap hari.</p>
           </div>
           <CalendarDays className="size-5 text-slate-400" />
         </div>
-        <div className="mt-6 grid grid-cols-7 gap-2">
+
+        <div className="mt-6 grid grid-cols-7 gap-2 sm:gap-4">
           {daily.map((day) => (
-            <div key={day.date} className="rounded-xl bg-slate-50 p-3 text-center">
-              <p className="text-xs font-medium text-slate-500">{day.label}</p>
-              <p className="mt-2 text-xl font-bold text-slate-900">{day.total}</p>
-              <p className="mt-1 text-[11px] text-amber-600">{day.late} terlambat</p>
+            <div key={day.date} className="flex min-w-0 flex-col items-center gap-2">
+              <div className="flex h-40 w-full max-w-12 items-end justify-center rounded-xl bg-slate-50 p-1.5">
+                <div
+                  className="w-full rounded-lg bg-blue-500 transition-all"
+                  style={{ height: `${Math.max((day.present / maxPresent) * 100, day.present ? 8 : 2)}%` }}
+                  title={`${day.present} hadir, ${day.late} terlambat`}
+                />
+              </div>
+              <div className="text-center">
+                <p className="text-xs font-medium text-slate-600">{day.label}</p>
+                <p className="text-sm font-bold text-slate-900">{day.present}</p>
+                <p className="text-[10px] text-amber-600">{day.late} terlambat</p>
+              </div>
             </div>
           ))}
         </div>
