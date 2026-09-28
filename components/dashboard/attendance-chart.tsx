@@ -33,16 +33,11 @@ export function AttendanceChart({ rows, employees, today }: { rows: AttendanceRo
   const days = useMemo(() => {
     const end = new Date(`${today}T00:00:00+07:00`);
     const start = new Date(end);
-
-    if (period === "month") {
-      start.setDate(1);
-    } else {
-      start.setDate(start.getDate() - (period === "7d" ? 6 : 29));
-    }
+    if (period === "month") start.setDate(1);
+    else start.setDate(start.getDate() - (period === "7d" ? 6 : 29));
 
     const result: Array<{ date: string; label: string; present: number; late: number }> = [];
     const cursor = new Date(start);
-
     while (cursor <= end) {
       const date = cursor.toLocaleDateString("en-CA", { timeZone: "Asia/Jakarta" });
       const dayRows = rows.filter((row) => row.attendance_date === date);
@@ -54,7 +49,6 @@ export function AttendanceChart({ rows, employees, today }: { rows: AttendanceRo
       });
       cursor.setDate(cursor.getDate() + 1);
     }
-
     return result;
   }, [period, rows, today]);
 
@@ -76,12 +70,7 @@ export function AttendanceChart({ rows, employees, today }: { rows: AttendanceRo
           <CalendarDays className="hidden size-5 text-slate-400 sm:block" />
           <div className="flex rounded-xl bg-slate-100 p-1">
             {(["7d", "30d", "month"] as const).map((value) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => { setPeriod(value); setSelectedDate(null); }}
-                className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${period === value ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}
-              >
+              <button key={value} type="button" onClick={() => { setPeriod(value); setSelectedDate(null); }} className={`rounded-lg px-3 py-1.5 text-xs font-medium transition ${period === value ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-900"}`}>
                 {value === "7d" ? "7 Hari" : value === "30d" ? "30 Hari" : "Bulan Ini"}
               </button>
             ))}
@@ -94,10 +83,7 @@ export function AttendanceChart({ rows, employees, today }: { rows: AttendanceRo
           {visibleDays.map((day) => (
             <button key={day.date} type="button" onClick={() => setSelectedDate(day.date)} className="group flex min-w-10 flex-1 flex-col items-center gap-2 rounded-xl p-1 hover:bg-slate-50">
               <div className="flex h-40 w-full max-w-12 items-end justify-center rounded-xl bg-slate-50 p-1.5 group-hover:bg-blue-50">
-                <div
-                  className="w-full rounded-lg bg-blue-500 transition-all group-hover:bg-blue-600"
-                  style={{ height: `${Math.max((day.present / maxPresent) * 100, day.present ? 8 : 2)}%` }}
-                />
+                <div className="w-full rounded-lg bg-blue-500 transition-all group-hover:bg-blue-600" style={{ height: `${Math.max((day.present / maxPresent) * 100, day.present ? 8 : 2)}%` }} />
               </div>
               <div className="text-center">
                 <p className="text-[10px] font-medium text-slate-500">{day.label}</p>
@@ -110,43 +96,52 @@ export function AttendanceChart({ rows, employees, today }: { rows: AttendanceRo
       </div>
 
       {selectedDate && (
-        <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-5">
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2">
-                <Users className="size-4 text-blue-600" />
-                <h4 className="font-semibold text-slate-900">Detail Absensi</h4>
-              </div>
-              <p className="mt-1 text-sm text-slate-500">{selectedLabel} · {selectedRows.length} catatan</p>
-            </div>
-            <button type="button" onClick={() => setSelectedDate(null)} className="rounded-lg p-1.5 text-slate-400 hover:bg-white hover:text-slate-700" aria-label="Tutup detail">
-              <X className="size-4" />
-            </button>
-          </div>
-
-          {selectedRows.length === 0 ? (
-            <div className="mt-4 rounded-xl bg-white px-4 py-6 text-center text-sm text-slate-500">Belum ada data absensi pada tanggal ini.</div>
-          ) : (
-            <div className="mt-4 divide-y divide-slate-100 overflow-hidden rounded-xl bg-white">
-              {selectedRows.map((row) => {
-                const employee = employeeMap.get(row.employee_id);
-                const status = row.status ?? "present";
-                const late = status === "late";
-                return (
-                  <div key={row.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-slate-900">{employee?.full_name ?? "Karyawan"}</p>
-                      <p className="text-xs text-slate-400">{employee?.employee_number ?? row.employee_id.slice(0, 8)}</p>
-                    </div>
-                    <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${late ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
-                      {late ? <Clock3 className="size-3" /> : <CheckCircle2 className="size-3" />}
-                      {statusLabel[status] ?? status}
-                    </span>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="attendance-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelectedDate(null); }}>
+          <div className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+            <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="grid size-8 place-items-center rounded-lg bg-blue-50 text-blue-600"><Users className="size-4" /></span>
+                  <div>
+                    <h4 id="attendance-modal-title" className="font-semibold text-slate-900">Detail Absensi</h4>
+                    <p className="text-xs text-slate-500">{selectedLabel} · {selectedRows.length} catatan</p>
                   </div>
-                );
-              })}
+                </div>
+              </div>
+              <button type="button" onClick={() => setSelectedDate(null)} className="rounded-lg p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700" aria-label="Tutup detail">
+                <X className="size-5" />
+              </button>
             </div>
-          )}
+
+            <div className="overflow-y-auto p-4">
+              {selectedRows.length === 0 ? (
+                <div className="rounded-xl bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">Belum ada data absensi pada tanggal ini.</div>
+              ) : (
+                <div className="divide-y divide-slate-100 overflow-hidden rounded-xl border border-slate-100">
+                  {selectedRows.map((row) => {
+                    const employee = employeeMap.get(row.employee_id);
+                    const status = row.status ?? "present";
+                    const late = status === "late";
+                    return (
+                      <div key={row.id} className="flex items-center justify-between gap-4 bg-white px-4 py-3">
+                        <div className="flex min-w-0 items-center gap-3">
+                          <div className="grid size-9 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-semibold text-slate-600">{(employee?.full_name ?? "K").charAt(0).toUpperCase()}</div>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-900">{employee?.full_name ?? "Karyawan"}</p>
+                            <p className="text-xs text-slate-400">{employee?.employee_number ?? row.employee_id.slice(0, 8)}</p>
+                          </div>
+                        </div>
+                        <span className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${late ? "bg-amber-50 text-amber-700" : "bg-emerald-50 text-emerald-700"}`}>
+                          {late ? <Clock3 className="size-3" /> : <CheckCircle2 className="size-3" />}
+                          {statusLabel[status] ?? status}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </section>
