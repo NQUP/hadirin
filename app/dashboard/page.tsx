@@ -73,8 +73,6 @@ export default async function DashboardPage() {
     );
   }
 
-  // Load the full 30-day range once so the client-side chart can switch between
-  // 7 days, 30 days, and the current month without another request.
   const [{ data: attendanceRows }, { data: monthlyAttendance }] = await Promise.all([
     supabase
       .from("attendance")
@@ -90,6 +88,11 @@ export default async function DashboardPage() {
 
   const rows = attendanceRows ?? [];
   const monthRows = monthlyAttendance ?? [];
+  const employeeIds = [...new Set(rows.map((row) => row.employee_id))];
+  const { data: employees } = employeeIds.length
+    ? await supabase.from("profiles").select("id, full_name, employee_number").in("id", employeeIds)
+    : { data: [] };
+
   const todayRows = rows.filter((row) => row.attendance_date === today);
   const presentToday = todayRows.filter((row) => row.status !== "absent").length;
   const lateToday = todayRows.filter((row) => row.status === "late").length;
@@ -122,7 +125,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <AttendanceChart rows={rows} today={today} />
+      <AttendanceChart rows={rows} employees={employees ?? []} today={today} />
 
       <div className="grid gap-4 lg:grid-cols-2">
         <section className="slide-up rounded-2xl border border-slate-200/80 bg-white p-6 shadow-sm">
