@@ -15,36 +15,36 @@ import {
   Building2,
   BarChart3,
 } from "lucide-react";
-
+import { entries } from "@/components/dashboard/dashboard-menu";
 import { createClient } from "@/utils/supabase/client";
 import type { AppRole, Profile } from "@/types/database";
 import { NotificationBell } from "@/components/dashboard/notification-bell";
 
-const entries = {
-  employee: [
-    ["Dashboard", "/dashboard", LayoutDashboard],
-    ["Absensi Saya", "/dashboard/attendance", CalendarClock],
-    ["Pengajuan", "/dashboard/requests", ClipboardList],
-    ["Profil", "/dashboard/profile", Users],
-  ],
-  manager: [
-    ["Dashboard", "/dashboard", LayoutDashboard],
-    ["Tim Saya", "/dashboard/team", Users],
-    ["Absensi Tim", "/dashboard/attendance", CalendarClock],
-    ["Pengajuan", "/dashboard/requests", ClipboardList],
-    ["Laporan", "/dashboard/reports", FileText],
-    ["Profil", "/dashboard/profile", Users],
-  ],
-  admin: [
-    ["Dashboard", "/dashboard", LayoutDashboard],
-    ["Karyawan", "/dashboard/employees", Users],
-    ["Wilayah Kerja", "/dashboard/settings", Building2],
-    ["Absensi", "/dashboard/attendance", CalendarClock],
-    ["Pengajuan", "/dashboard/requests", ClipboardList],
-    ["Laporan", "/dashboard/reports", BarChart3],
-    ["Profil", "/dashboard/profile", Users],
-  ],
-} as const;
+// const entries = {
+//   employee: [
+//     ["Dashboard", "/dashboard", LayoutDashboard],
+//     ["Absensi Saya", "/dashboard/attendance", CalendarClock],
+//     ["Pengajuan", "/dashboard/requests", ClipboardList],
+//     ["Profil", "/dashboard/profile", Users],
+//   ],
+//   manager: [
+//     ["Dashboard", "/dashboard", LayoutDashboard],
+//     ["Tim Saya", "/dashboard/team", Users],
+//     ["Absensi Tim", "/dashboard/attendance", CalendarClock],
+//     ["Pengajuan", "/dashboard/requests", ClipboardList],
+//     ["Laporan", "/dashboard/reports", FileText],
+//     ["Profil", "/dashboard/profile", Users],
+//   ],
+//   admin: [
+//     ["Dashboard", "/dashboard", LayoutDashboard],
+//     ["Karyawan", "/dashboard/employees", Users],
+//     ["Wilayah Kerja", "/dashboard/settings", Building2],
+//     ["Absensi", "/dashboard/attendance", CalendarClock],
+//     ["Pengajuan", "/dashboard/requests", ClipboardList],
+//     ["Laporan", "/dashboard/reports", BarChart3],
+//     ["Profil", "/dashboard/profile", Users],
+//   ],
+// } as const;
 
 function getRoleLabel(role: AppRole) {
   switch (role) {
