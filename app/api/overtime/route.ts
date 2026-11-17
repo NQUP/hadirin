@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 
 import { notifyRequestSubmitted } from "@/lib/notifications";
 import { requireApiProfile } from "@/lib/auth";
@@ -50,7 +50,7 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const access = await requireApiProfile();
+  const access = await requireApiProfile(["employee"]);
 
   if ("error" in access) {
     return NextResponse.json({ error: access.error }, { status: access.status });

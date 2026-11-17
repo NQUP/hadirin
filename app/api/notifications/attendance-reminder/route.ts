@@ -1,15 +1,94 @@
-import { NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import { requireApiProfile } from "@/lib/auth";
 import { createAdminClient } from "@/utils/supabase/admin";
 
 const TIME_ZONE = "Asia/Jakarta";
 
-export async function POST() {
-  const access = await requireApiProfile(["admin"]);
-  if ("error" in access) {
-    return NextResponse.json({ error: access.error }, { status: access.status });
+/**
+ * Verifikasi Bearer token dari header Authorization.
+ * Menggunakan crypto.timingSafeEqual untuk mencegah timing attack.
+ * Mengembalikan true hanya jika CRON_SECRET di-set DAN token cocok.
+ */
+function verifyCronSecret(request: NextRequest | Request): boolean {
+  const cronSecret = process.env.CRON_SECRET;
+  if (!cronSecret) return false;
+
+  const authHeader =
+    "headers" in request && typeof request.headers.get === "function"
+      ? request.headers.get("authorization")
+      : null;
+
+  if (!authHeader) return false;
+
+  const token = authHeader.startsWith("Bearer ")
+    ? authHeader.slice(7)
+    : "";
+
+  if (!token || token.length !== cronSecret.length) return false;
+
+  const encoder = new TextEncoder();
+  const a = encoder.encode(token);
+  const b = encoder.encode(cronSecret);
+
+  // crypto.timingSafeEqual tersedia di Node.js runtime
+  try {
+    return crypto.subtle
+      ? timingSafeCompare(a, b)
+      : false;
+  } catch {
+    return false;
+  }
+}
+
+function timingSafeCompare(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a[i] ^ b[i];
+  }
+  return result === 0;
+}
+
+/**
+ * GET — Vercel Cron memanggil dengan GET + header Authorization: Bearer <CRON_SECRET>.
+ * Hanya menerima jalur secret, bukan sesi admin.
+ */
+export async function GET(request: NextRequest) {
+  if (!verifyCronSecret(request)) {
+    return NextResponse.json(
+      { error: "Akses tidak diizinkan." },
+      { status: 401 },
+    );
   }
 
+  return handleAttendanceReminder();
+}
+
+/**
+ * POST — Admin yang sedang login, ATAU cron dengan Bearer secret.
+ */
+export async function POST(request: Request) {
+  const isCron = verifyCronSecret(request);
+
+  if (!isCron) {
+    const access = await requireApiProfile(["admin"]);
+    if ("error" in access) {
+      return NextResponse.json(
+        { error: access.error },
+        { status: access.status },
+      );
+    }
+  }
+
+  return handleAttendanceReminder();
+}
+
+/**
+ * Logika inti pengingat absensi.
+ * Idempotent: pemanggilan ganda pada hari yang sama tidak membuat notifikasi duplikat
+ * karena event_key berisi tanggal dan employee_id, dan notifikasi yang sudah ada di-skip.
+ */
+async function handleAttendanceReminder() {
   const admin = createAdminClient();
   const now = new Date();
   const { date: attendanceDate, weekday, time } = getJakartaParts(now);

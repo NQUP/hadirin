@@ -1,4 +1,4 @@
-# Hadirin — Sistem Absensi Karyawan
+﻿# Hadirin â€” Sistem Absensi Karyawan
 
 Aplikasi full-stack Next.js untuk absensi karyawan dengan Supabase Auth, PostgreSQL, role-based access control, dan Row Level Security.
 
@@ -46,3 +46,25 @@ npx tsc --noEmit
 npm run lint
 npm run build
 ```
+
+## Pengingat absensi (Cron)
+
+Endpoint `GET /api/notifications/attendance-reminder` mengirim notifikasi kepada karyawan yang belum clock-in setelah batas toleransi shift. Endpoint ini idempotent — pemanggilan ganda pada hari yang sama tidak membuat notifikasi duplikat.
+
+### Autentikasi
+
+- **Admin login (POST):** Menggunakan sesi cookie admin yang aktif.
+- **Cron secret (GET/POST):** Menyertakan header `Authorization: Bearer <CRON_SECRET>`. Variabel `CRON_SECRET` harus di-set di environment Vercel dan `.env.local`.
+
+### Vercel Cron
+
+File `vercel.json` mengatur jadwal cron `30 1 * * 1-5` (Senin–Jumat pukul 08.30 WIB / 01.30 UTC).
+
+Vercel secara otomatis menyertakan header `Authorization: Bearer <CRON_SECRET>` jika environment variable `CRON_SECRET` terdaftar di project settings.
+
+**Batas frekuensi per plan Vercel:**
+- Hobby: 2 cron job, 1×/hari
+- Pro: 40 cron job, interval minimal 1 menit
+- Enterprise: 100 cron job, interval minimal 1 menit
+
+Jika plan Hobby, ubah jadwal menjadi `0 1 * * *` (1×/hari) dan pastikan hanya ada ≤2 cron.

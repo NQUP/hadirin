@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { requireApiProfile } from "@/lib/auth";
 import { employeeSchema } from "@/lib/validations/employee";
 import { createClient } from "@/utils/supabase/server";
@@ -16,10 +16,24 @@ export async function GET() {
 
   const supabase = await createClient();
 
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("*, departments(name), positions(title)")
-    .order("full_name");
+  const [
+    { data, error },
+    { data: departments },
+    { data: positions },
+  ] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("*, departments(name), positions(title)")
+      .order("full_name"),
+    supabase
+      .from("departments")
+      .select("id, name")
+      .order("name"),
+    supabase
+      .from("positions")
+      .select("id, title, department_id")
+      .order("title"),
+  ]);
 
   if (error) {
     console.error(error);
@@ -32,6 +46,8 @@ export async function GET() {
 
   return NextResponse.json({
     employees: data,
+    departments: departments ?? [],
+    positions: positions ?? [],
   });
 }
 
@@ -229,6 +245,22 @@ export async function PATCH(request: Request) {
       { error: "Data karyawan tidak valid." },
       { status: 422 }
     );
+  }
+
+  // Cegah admin menonaktifkan atau menurunkan role diri sendiri
+  if (id === access.profile.id) {
+    if (parsed.data.isActive === false) {
+      return NextResponse.json(
+        { error: "Anda tidak dapat menonaktifkan akun sendiri." },
+        { status: 403 }
+      );
+    }
+    if (parsed.data.role !== undefined && parsed.data.role !== "admin") {
+      return NextResponse.json(
+        { error: "Anda tidak dapat menurunkan role akun sendiri." },
+        { status: 403 }
+      );
+    }
   }
 
   const supabase = await createClient();

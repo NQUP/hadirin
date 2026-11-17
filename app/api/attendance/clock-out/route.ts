@@ -1,11 +1,11 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { haversineDistanceMeters } from "@/lib/attendance";
 import { requireApiProfile } from "@/lib/auth";
 import { clockSchema } from "@/lib/validations/attendance";
 import { createClient } from "@/utils/supabase/server";
 
 export async function POST(request: Request) {
-  const access = await requireApiProfile();
+  const access = await requireApiProfile(["employee"]);
   if ("error" in access) return NextResponse.json({ error: access.error }, { status: access.status });
   const parsed = clockSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Data lokasi tidak valid." }, { status: 422 });

@@ -1,6 +1,8 @@
-import { redirect } from "next/navigation";
+﻿import { redirect } from "next/navigation";
 import { EmployeeWorkRegionSelect } from "@/components/dashboard/employee-work-region-select";
 import { AddEmployeeModal } from "@/components/dashboard/add-employee-modal";
+import { EditEmployeeModal } from "@/components/dashboard/edit-employee-modal";
+import { ToggleEmployeeActive } from "@/components/dashboard/toggle-employee-active";
 import { requireProfile } from "@/lib/auth";
 import { createClient } from "@/utils/supabase/server";
 import { Users } from "lucide-react";
@@ -31,27 +33,54 @@ export default async function EmployeesPage() {
       </div>
       <div className="scale-in overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[850px] text-left text-sm">
-            <thead className="bg-gradient-to-r from-slate-50 to-white text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-4 font-semibold">Karyawan</th><th className="px-5 py-4 font-semibold">Role</th><th className="px-5 py-4 font-semibold">Department</th><th className="px-5 py-4 font-semibold">Wilayah kerja</th><th className="px-5 py-4 font-semibold">Status</th></tr></thead>
+          <table className="w-full min-w-[950px] text-left text-sm">
+            <thead className="bg-gradient-to-r from-slate-50 to-white text-xs uppercase tracking-wide text-slate-500"><tr><th className="px-5 py-4 font-semibold">Karyawan</th><th className="px-5 py-4 font-semibold">Role</th><th className="px-5 py-4 font-semibold">Department</th><th className="px-5 py-4 font-semibold">Wilayah kerja</th><th className="px-5 py-4 font-semibold">Status</th><th className="px-5 py-4 font-semibold">Aksi</th></tr></thead>
             <tbody className="divide-y divide-slate-100">
               {employees?.map((employee, index) => {
                 const department = (employee.departments as unknown as { name: string } | null)?.name;
+                const isSelf = employee.id === profile.id;
                 return (
                   <tr key={employee.id} className="table-row-hover slide-up" style={{ animationDelay: `${index * 30}ms` }}>
-                    <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white shadow-sm shadow-blue-500/20">{employee.full_name?.charAt(0)?.toUpperCase() || "?"}</div><div className="min-w-0"><p className="truncate font-medium text-slate-800">{employee.full_name || "Tanpa nama"}</p><p className="truncate text-xs text-slate-500">{employee.employee_number || "—"} · {employee.email || "—"}</p></div></div></td>
-                    <td className="px-5 py-4"><span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize text-slate-600">{employee.role || "—"}</span></td>
-                    <td className="px-5 py-4 text-slate-600">{department || "—"}</td>
+                    <td className="px-5 py-4"><div className="flex items-center gap-3"><div className="grid size-10 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 text-sm font-bold text-white shadow-sm shadow-blue-500/20">{employee.full_name?.charAt(0)?.toUpperCase() || "?"}</div><div className="min-w-0"><p className="truncate font-medium text-slate-800">{employee.full_name || "Tanpa nama"}</p><p className="truncate text-xs text-slate-500">{employee.employee_number || "\u2013"} &middot; {employee.email || "\u2013"}</p></div></div></td>
+                    <td className="px-5 py-4"><span className="inline-flex rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-medium capitalize text-slate-600">{employee.role || "\u2013"}</span></td>
+                    <td className="px-5 py-4 text-slate-600">{department || "\u2013"}</td>
                     <td className="px-5 py-4"><EmployeeWorkRegionSelect employeeId={employee.id} regionId={employee.office_location_id} regions={regions ?? []} /></td>
                     <td className="px-5 py-4"><span className={`badge ${employee.is_active ? "badge-success" : "badge-danger"}`}>{employee.is_active ? "Aktif" : "Nonaktif"}</span></td>
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-1.5">
+                        <EditEmployeeModal
+                          employee={employee}
+                          currentAdminId={profile.id}
+                          allEmployees={employees ?? []}
+                          subordinateCount={(employees ?? []).filter((e) => e.is_active && e.manager_id === employee.id).length}
+                        />
+                        <ToggleEmployeeActive
+                          employeeId={employee.id}
+                          employeeName={employee.full_name || "Karyawan"}
+                          isActive={employee.is_active}
+                          isSelf={isSelf}
+                          subordinateCount={(employees ?? []).filter((e) => e.is_active && e.manager_id === employee.id).length}
+                          employeeData={{
+                            employeeNumber: employee.employee_number || "",
+                            fullName: employee.full_name || "",
+                            email: employee.email || "",
+                            role: employee.role || "employee",
+                            departmentId: employee.department_id,
+                            positionId: employee.position_id,
+                            managerId: employee.manager_id,
+                          }}
+                        />
+                      </div>
+                    </td>
                   </tr>
                 );
               })}
-              {!employees?.length && <tr><td colSpan={5} className="px-5 py-16 text-center"><div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-100"><Users className="size-7 text-slate-400" /></div><p className="mt-4 font-semibold text-slate-700">Belum ada data karyawan</p><p className="mt-1 text-sm text-slate-400">Tambahkan karyawan pertama untuk mulai menggunakan sistem.</p><div className="mt-5 flex justify-center"><AddEmployeeModal /></div></td></tr>}
+              {!employees?.length && <tr><td colSpan={6} className="px-5 py-16 text-center"><div className="mx-auto grid size-14 place-items-center rounded-2xl bg-slate-100"><Users className="size-7 text-slate-400" /></div><p className="mt-4 font-semibold text-slate-700">Belum ada data karyawan</p><p className="mt-1 text-sm text-slate-400">Tambahkan karyawan pertama untuk mulai menggunakan sistem.</p><div className="mt-5 flex justify-center"><AddEmployeeModal /></div></td></tr>}
             </tbody>
           </table>
         </div>
       </div>
-      {employees && employees.length > 0 && <div className="mt-4 flex items-center justify-between text-xs text-slate-400"><span>Menampilkan <span className="font-semibold text-slate-600">{employees.length}</span> karyawan</span><span className="hidden sm:block">Kelola akun melalui tombol Tambah Karyawan</span></div>}
+      {employees && employees.length > 0 && <div className="mt-4 flex items-center justify-between text-xs text-slate-400"><span>Menampilkan <span className="font-semibold text-slate-600">{employees.length}</span> karyawan</span><span className="hidden sm:block">Kelola akun melalui tombol Tambah Karyawan atau Edit</span></div>}
     </section>
   );
 }

@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { requireApiProfile } from "@/lib/auth";
@@ -19,6 +19,9 @@ export async function PATCH(request: Request) {
 
         const fullNameValue = formData.get("fullName");
         const fileValue = formData.get("avatar");
+        const currentPasswordValue = formData.get("currentPassword");
+        const passwordValue = formData.get("password");
+        const passwordConfirmationValue = formData.get("passwordConfirmation");
 
         // =========================
         // VALIDASI NAMA
@@ -45,6 +48,73 @@ export async function PATCH(request: Request) {
                 { error: "Nama lengkap minimal 2 karakter." },
                 { status: 422 },
             );
+        }
+
+        // =========================
+        // VALIDASI PASSWORD (opsional)
+        // =========================
+
+        const currentPassword =
+            typeof currentPasswordValue === "string"
+                ? currentPasswordValue
+                : "";
+
+        const password =
+            typeof passwordValue === "string"
+                ? passwordValue
+                : "";
+
+        const passwordConfirmation =
+            typeof passwordConfirmationValue === "string"
+                ? passwordConfirmationValue
+                : "";
+
+        if (password) {
+            if (!currentPassword) {
+                return NextResponse.json(
+                    {
+                        error: "Password saat ini wajib diisi untuk mengubah password.",
+                    },
+                    { status: 422 },
+                );
+            }
+
+            if (password.length < 8) {
+                return NextResponse.json(
+                    {
+                        error: "Password baru minimal 8 karakter.",
+                    },
+                    { status: 422 },
+                );
+            }
+
+            if (password !== passwordConfirmation) {
+                return NextResponse.json(
+                    {
+                        error: "Konfirmasi password tidak cocok.",
+                    },
+                    { status: 422 },
+                );
+            }
+
+            // Verifikasi password saat ini dengan Supabase Auth client terpisah
+            // yang TIDAK menyimpan sesi/cookie (agar sesi aktif tidak tertimpa).
+            const verifyClient = createAdminClient();
+
+            const { error: signInError } =
+                await verifyClient.auth.signInWithPassword({
+                    email: access.profile.email,
+                    password: currentPassword,
+                });
+
+            if (signInError) {
+                return NextResponse.json(
+                    {
+                        error: "Password saat ini salah.",
+                    },
+                    { status: 400 },
+                );
+            }
         }
 
         const adminSupabase = createAdminClient();
@@ -135,6 +205,32 @@ export async function PATCH(request: Request) {
         }
 
         // =========================
+        // UPDATE PASSWORD (jika diisi)
+        // =========================
+
+        if (password) {
+            const { error: authError } =
+                await adminSupabase.auth.admin.updateUserById(
+                    access.profile.id,
+                    { password },
+                );
+
+            if (authError) {
+                console.error(
+                    "UPDATE PASSWORD ERROR:",
+                    authError.message,
+                );
+
+                return NextResponse.json(
+                    {
+                        error: "Gagal mengubah password.",
+                    },
+                    { status: 500 },
+                );
+            }
+        }
+
+        // =========================
         // UPDATE PROFILE
         // =========================
 
@@ -211,7 +307,9 @@ export async function PATCH(request: Request) {
 
         return NextResponse.json({
             success: true,
-            message: "Profil berhasil diperbarui.",
+            message: password
+                ? "Profil dan password berhasil diperbarui."
+                : "Profil berhasil diperbarui.",
             profile: {
                 id: updatedProfile.id,
                 full_name: updatedProfile.full_name,
