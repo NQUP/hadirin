@@ -1,6 +1,7 @@
 import type { AppRole } from "@/types/database";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { createClient } from "@/utils/supabase/server";
+import { todayInJakarta } from "@/lib/report-period";
 
 export type AttendanceSummaryStatus = "present" | "late" | "permission" | "sick" | "leave" | "absent";
 
@@ -170,6 +171,9 @@ export async function getAttendanceSummary(
   const leaveRows = (leaves ?? []) as LeaveRow[];
   const records: AttendanceSummaryRecord[] = [];
 
+  const today = todayInJakarta();
+  const nowTime = localTime(new Date().toISOString());
+
   for (const employee of scopedProfiles) {
     const employeeSchedules = scheduleMap.get(employee.id) ?? [];
 
@@ -185,6 +189,8 @@ export async function getAttendanceSummary(
       const metrics = attendanceRow ? getAttendanceMetrics(attendanceRow, schedule?.shift ?? null) : null;
       const status = metrics?.status ?? leave?.leave_type ?? (schedule ? "absent" : "present");
 
+      if (status === "absent" && !isAbsenceDue(date, today, nowTime, schedule?.shift ?? null)) continue;
+
       records.push({
         employeeId: employee.id,
         date,
@@ -199,7 +205,12 @@ export async function getAttendanceSummary(
     }
   }
 
-  records.sort((left, right) => right.date.localeCompare(left.date) || left.name.localeCompare(right.name));
+  records.sort(
+    (left, right) =>
+      right.date.localeCompare(left.date) ||
+      left.name.localeCompare(right.name) ||
+      left.employeeId.localeCompare(right.employeeId),
+  );
 
   return {
     from,
@@ -261,4 +272,19 @@ function differenceInMinutes(later: string, earlier: string) {
   const [laterHour, laterMinute] = later.slice(0, 5).split(":").map(Number);
   const [earlierHour, earlierMinute] = earlier.slice(0, 5).split(":").map(Number);
   return laterHour * 60 + laterMinute - (earlierHour * 60 + earlierMinute);
+}
+
+function isAbsenceDue(
+  date: string,
+  today: string,
+  nowTime: string,
+  shift: { start_time: string; end_time: string } | null,
+) {
+  if (date < today) return true;
+  if (date > today) return false;
+  if (!shift) return false;
+  const start = shift.start_time.slice(0, 5);
+  const end = shift.end_time.slice(0, 5);
+  if (end <= start) return false; // shift lintas hari: jangan dianggap absent di hari berjalan
+  return nowTime >= end;
 }
