@@ -5,10 +5,9 @@ import { getAttendanceSummary } from "@/lib/attendance-summary";
 import { getPeriodRange, parseEmployeeId, todayInJakarta } from "@/lib/report-period";
 
 export async function GET(request: Request) {
-    // SESUAIKAN dua baris ini dengan route lain, mis. app/api/overtime/route.ts.
     const access = await requireApiProfile();
-    if ("response" in access) return access.response;
-    const { profile } = access;
+    const profile = access.profile;
+    if (!profile) return NextResponse.json({ message: access.error }, { status: access.status });
 
     const params = new URL(request.url).searchParams;
     const period = params.get("period") || "monthly";
