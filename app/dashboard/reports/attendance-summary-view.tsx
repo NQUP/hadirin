@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import * as XLSX from "xlsx-js-style";
 
+import { EmployeeCombobox } from "@/components/reports/employee-combobox";
+
 import type { AppRole } from "@/types/database";
 import type {
   AttendanceSummaryRecord,
@@ -253,21 +255,13 @@ export function AttendanceSummaryView({
             </>
           )}
           {role !== "employee" && (
-            <label className="text-xs font-semibold text-slate-600">
-              Employee
-              <select
-                name="employeeId"
+            <div className="text-xs font-semibold text-slate-600">
+              <span>Employee</span>
+              <EmployeeCombobox
+                employees={result.employees}
                 defaultValue={employeeId}
-                className="field mt-1.5"
-              >
-                <option value="">Semua employee</option>
-                {result.employees.map((employee) => (
-                  <option key={employee.id} value={employee.id}>
-                    {employee.name} ({employee.number})
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
           )}
         </div>
         <button
